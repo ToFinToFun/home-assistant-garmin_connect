@@ -13,7 +13,6 @@ from garminconnect import (
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_ID, CONF_TOKEN, CONF_PASSWORD, CONF_USERNAME
 import voluptuous as vol
-import garth
 
 from .const import CONF_MFA, DOMAIN
 
@@ -108,8 +107,15 @@ class GarminConnectConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         try:
             await self.hass.async_add_executor_job(self._api.resume_login, self._login_result2, self._mfa_code)
 
-        except garth.exc.GarthException as err:
+        except (GarminConnectAuthenticationError, GarminConnectConnectionError) as err:
             _LOGGER.error("Error during MFA login: %s", err)
+            return self.async_show_form(
+                step_id="mfa",
+                data_schema=vol.Schema(self.mfa_data_schema),
+                errors={"base": "invalid_mfa_code"},
+            )
+        except Exception as err:  # pylint: disable=broad-except
+            _LOGGER.error("Unexpected error during MFA login: %s", err)
             return self.async_show_form(
                 step_id="mfa",
                 data_schema=vol.Schema(self.mfa_data_schema),
@@ -126,7 +132,7 @@ class GarminConnectConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         """
         config_data = {
             CONF_ID: self._username,
-            CONF_TOKEN: self._api.garth.dumps(),
+            CONF_TOKEN: self._api.client.dumps(),
         }
         existing_entry = await self.async_set_unique_id(self._username)
 

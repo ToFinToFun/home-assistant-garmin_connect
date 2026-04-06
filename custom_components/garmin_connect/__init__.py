@@ -12,7 +12,6 @@ from garminconnect import (
     GarminConnectConnectionError,
     GarminConnectTooManyRequestsError,
 )
-import requests
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_ID, CONF_PASSWORD, CONF_TOKEN, CONF_USERNAME
@@ -62,8 +61,8 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 # Login to get the token
                 await hass.async_add_executor_job(api.login)
 
-                # Get the OAuth tokens
-                tokens = api.garth.dumps()
+                # Get the DI tokens (garminconnect v0.3+ uses client.dumps())
+                tokens = api.client.dumps()
 
                 # Create new data with token, keeping the ID
                 new_data = {
@@ -215,7 +214,7 @@ class GarminConnectDataUpdateCoordinator(DataUpdateCoordinator):
             raise
         except GarminConnectAuthenticationError as err:
             _LOGGER.error(
-                "Authentication error occurred during login: %s", err.response.text)
+                "Authentication error occurred during login: %s", err)
             raise ConfigEntryAuthFailed from err
         except GarminConnectTooManyRequestsError as err:
             _LOGGER.error(
@@ -414,7 +413,7 @@ class GarminConnectDataUpdateCoordinator(DataUpdateCoordinator):
 
         except GarminConnectAuthenticationError as err:
             _LOGGER.error(
-                "Authentication error occurred during update: %s", err.response.text)
+                "Authentication error occurred during update: %s", err)
             raise ConfigEntryAuthFailed from err
         except GarminConnectTooManyRequestsError as err:
             _LOGGER.error(
@@ -472,7 +471,7 @@ class GarminConnectDataUpdateCoordinator(DataUpdateCoordinator):
                 _LOGGER.debug("No gear data available, skipping gear stats and defaults fetch")
         except GarminConnectAuthenticationError as err:
             _LOGGER.error(
-                "Authentication error occurred while fetching Gear data: %s", err.response.text)
+                "Authentication error occurred while fetching Gear data: %s", err)
             raise ConfigEntryAuthFailed from err
         except GarminConnectTooManyRequestsError as err:
             _LOGGER.error(
